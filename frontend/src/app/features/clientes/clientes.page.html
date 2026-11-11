@@ -1,0 +1,185 @@
+<div class="mx-auto max-w-6xl space-y-6">
+  <!-- Encabezado -->
+  <div>
+    <h2 class="text-xl font-bold text-slate-800">Buscador de Clientes</h2>
+    <p class="text-xs text-slate-500">
+      Busca clientes activos por DNI/RUC o razón social. La consulta se ejecuta
+      automáticamente al escribir {{ minCaracteres }} o más caracteres.
+    </p>
+  </div>
+
+  <!-- Campo de búsqueda -->
+  <mat-card appearance="outlined" class="rounded-xl! bg-white!">
+    <mat-card-content class="pt-4!">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="w-full">
+        <mat-label>Término de búsqueda</mat-label>
+        <mat-icon matPrefix>search</mat-icon>
+        <input
+          matInput
+          id="cliente-q"
+          type="text"
+          autocomplete="off"
+          [formControl]="busqueda"
+          placeholder="Ej. 2055, BANCO, MARIA..."
+        />
+        @if (busqueda.value) {
+          <button
+            matIconButton
+            matSuffix
+            type="button"
+            aria-label="Limpiar búsqueda"
+            (click)="limpiar()"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+        <mat-hint>
+          Documento: coincidencia por prefijo · Razón social: coincidencia parcial.
+        </mat-hint>
+      </mat-form-field>
+
+      @if (!busquedaSuficiente() && busqueda.value.trim().length > 0) {
+        <p class="-mt-1 text-xs text-amber-600">
+          Escriba al menos {{ minCaracteres }} caracteres para iniciar la búsqueda.
+        </p>
+      }
+    </mat-card-content>
+  </mat-card>
+
+  <div class="grid gap-6 lg:grid-cols-5">
+    <!-- Resultados -->
+    <mat-card appearance="outlined" class="overflow-hidden rounded-xl! bg-white! lg:col-span-3">
+      <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+        <h3 class="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+          Coincidencias
+        </h3>
+        <span class="text-xs text-slate-400">{{ resultados().length }} resultado(s)</span>
+      </div>
+
+      @if (cargando()) {
+        <mat-progress-bar mode="indeterminate" />
+      }
+
+      <div class="min-h-48" aria-live="polite">
+        @if (error()) {
+          <div class="flex flex-col items-center px-4 py-10 text-center">
+            <mat-icon class="mb-2 text-red-500!">error_outline</mat-icon>
+            <p class="text-sm font-medium text-red-600">{{ error() }}</p>
+            <p class="mt-1 text-xs text-slate-400">
+              Verifique la conexión con el servidor e intente nuevamente.
+            </p>
+          </div>
+        } @else if (!busquedaSuficiente()) {
+          <div class="flex flex-col items-center px-4 py-12 text-center">
+            <mat-icon class="mb-2 text-slate-300!">manage_search</mat-icon>
+            <p class="text-xs text-slate-400">
+              Escriba al menos {{ minCaracteres }} caracteres para ver coincidencias.
+            </p>
+          </div>
+        } @else if (cargando() && resultados().length === 0) {
+          <div class="flex items-center justify-center gap-3 px-4 py-12">
+            <mat-spinner diameter="24" />
+            <span class="text-xs text-slate-500">Buscando clientes...</span>
+          </div>
+        } @else if (resultados().length === 0) {
+          <div class="flex flex-col items-center px-4 py-12 text-center">
+            <mat-icon class="mb-2 text-slate-300!">search_off</mat-icon>
+            <p class="text-xs text-slate-400">
+              No se encontraron clientes para "{{ terminoActual().trim() }}".
+            </p>
+          </div>
+        } @else {
+          <mat-list class="py-0!">
+            @for (cliente of resultados(); track cliente.id) {
+              <button
+                mat-list-item
+                type="button"
+                class="border-b border-slate-100 text-left last:border-b-0"
+                [activated]="seleccionado()?.id === cliente.id"
+                (click)="seleccionar(cliente)"
+              >
+                <span matListItemTitle class="text-sm font-semibold">
+                  {{ cliente.razonSocial }}
+                </span>
+                <span matListItemLine class="text-xs">
+                  {{ cliente.tipoDocumento }} · {{ cliente.numeroDocumento }}
+                </span>
+                <span matListItemMeta>
+                  <mat-chip-set>
+                    <mat-chip highlighted>{{ cliente.segmento }}</mat-chip>
+                  </mat-chip-set>
+                </span>
+              </button>
+            }
+          </mat-list>
+        }
+      </div>
+    </mat-card>
+
+    <!-- Ficha de detalle -->
+    <mat-card appearance="outlined" class="rounded-xl! bg-white! lg:col-span-2">
+      <div class="border-b border-slate-100 px-4 py-3">
+        <h3 class="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+          Ficha del cliente
+        </h3>
+      </div>
+
+      <mat-card-content>
+        @if (seleccionado(); as cliente) {
+          <div class="space-y-4 pt-4">
+            <div>
+              <p class="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+                Razón Social / Nombre
+              </p>
+              <p class="mt-1 text-base leading-tight font-bold text-slate-800">
+                {{ cliente.razonSocial }}
+              </p>
+            </div>
+
+            <mat-divider />
+
+            <div class="grid grid-cols-1 gap-3">
+              <div class="rounded-lg bg-slate-50 px-3 py-2">
+                <p class="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+                  Tipo y Número de Documento
+                </p>
+                <p class="mt-0.5 text-sm font-semibold text-slate-800">
+                  {{ cliente.tipoDocumento }} · {{ cliente.numeroDocumento }}
+                </p>
+              </div>
+
+              <div class="rounded-lg bg-slate-50 px-3 py-2">
+                <p class="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+                  Segmento
+                </p>
+                <div class="mt-1">
+                  <mat-chip-set>
+                    <mat-chip highlighted>{{ cliente.segmento }}</mat-chip>
+                  </mat-chip-set>
+                </div>
+              </div>
+
+              <div class="rounded-lg bg-slate-50 px-3 py-2">
+                <p class="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">
+                  Correo
+                </p>
+                <p class="mt-0.5 truncate text-sm text-slate-800">
+                  {{ cliente.correo }}
+                </p>
+              </div>
+            </div>
+          </div>
+        } @else {
+          <div class="flex min-h-48 flex-col items-center justify-center py-6 text-center">
+            <div class="mb-3 flex size-12 items-center justify-center rounded-full bg-slate-100">
+              <mat-icon class="text-slate-400!">person_search</mat-icon>
+            </div>
+            <p class="text-xs text-slate-400">
+              Seleccione una coincidencia para ver su ficha de detalle.
+            </p>
+          </div>
+        }
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>
