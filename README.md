@@ -7,12 +7,22 @@ Esta solución es la plantilla base para el desarrollo de la evaluación técnic
 
 ## 🚀 1. Puesta en Marcha Rápida
 
-### A. Backend (.NET 10 — Puerto `:5000`)
-1. Ajusta tu cadena de conexión a SQL Server local en `backend/WinServices.Api.Api/appsettings.Development.json`:
+### A. Base de datos (SQL Server)
+1. Verifica que exista la base `PE_WINET_CRM` con la tabla `dbo.Cliente`.
+2. Ejecuta el stored procedure (con `PE_WINET_CRM` seleccionada):
+   ```bash
+   sqlcmd -S localhost -d PE_WINET_CRM -i 02_sp_buscar_clientes.sql
+   ```
+   También puedes abrir el script en SQL Server Management Studio y ejecutarlo sobre `PE_WINET_CRM`.
+
+### B. Backend (.NET 10 — Puerto `:5000`)
+1. Crea la configuración local a partir del ejemplo (el archivo real no se versiona). Ya trae la cadena a SQL Server local con autenticación de Windows:
+   ```bash
+   cp backend/WinServices.Api.Api/appsettings.Development.json-example backend/WinServices.Api.Api/appsettings.Development.json
+   ```
+   Si tu instancia no es `localhost` o usas usuario y contraseña, ajusta `ConnectionStrings.DefaultConnection`:
    ```json
-   "ConnectionStrings": {
-     "DefaultConnection": "Server=localhost;Database=PE_WINET_CRM;Trusted_Connection=True;TrustServerCertificate=True;"
-   }
+   "DefaultConnection": "Server=localhost;Database=PE_WINET_CRM;Trusted_Connection=True;TrustServerCertificate=True;"
    ```
 2. Compila y levanta el API:
    ```bash
@@ -21,7 +31,7 @@ Esta solución es la plantilla base para el desarrollo de la evaluación técnic
    ```
    - El API escuchará en `http://localhost:5000` (Documentación interactiva en `http://localhost:5000/scalar/v1`).
 
-### B. Frontend (Angular 22 — Puerto `:4200`)
+### C. Frontend (Angular 22 — Puerto `:4200`)
 1. En otra terminal, instala paquetes e inicia el servidor:
    ```bash
    cd frontend
@@ -29,6 +39,7 @@ Esta solución es la plantilla base para el desarrollo de la evaluación técnic
    npm start
    ```
    - La aplicación abrirá en `http://localhost:4200`.
+   - `npm start` genera automáticamente el archivo `.env` desde `.env.example` (con `WIN_APP_USE_MOCK=false`), por lo que consume el API real.
    - El proxy (`proxy.conf.json`) ya redirige automáticamente toda llamada a `/api/*` hacia `http://localhost:5000`.
 
 ---
